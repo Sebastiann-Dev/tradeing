@@ -218,30 +218,30 @@ tab_screener, tab_charts, tab_framework = st.tabs([
 with tab_screener:
     st.markdown("#### Registro de Operaciones y Selección de Activo")
 
-    # Filtros de tabla
-    c_f1, c_f2 = st.columns([3, 1])
-    with c_f1:
-        tipo_opciones = [
-            "Acciones Operables (EQUITY_STRONG)",
-            "Acciones Informativas (EQUITY_SMALL)",
-            "Macro Deuda / Bonos (MACRO_BOND)",
-            "Ventas (SELL)",
-            "Caducadas (STALE)"
-        ]
-        filtro_tipos = st.multiselect(
-            "Filtrar tipos de operación:",
-            options=tipo_opciones,
-            default=tipo_opciones[:2] # Por defecto solo acciones
-        )
-
+    # Filtros de tabla (clic directo sin cajas de texto editables)
+    tipo_opciones = [
+        "Acciones Operables",
+        "Acciones Informativas",
+        "Macro Deuda/Bonos",
+        "Ventas",
+        "Caducadas"
+    ]
     tipo_map = {
-        "Acciones Operables (EQUITY_STRONG)": "EQUITY_STRONG",
-        "Acciones Informativas (EQUITY_SMALL)": "EQUITY_SMALL",
-        "Macro Deuda / Bonos (MACRO_BOND)": "MACRO_BOND",
-        "Ventas (SELL)": "SELL",
-        "Caducadas (STALE)": "STALE"
+        "Acciones Operables": "EQUITY_STRONG",
+        "Acciones Informativas": "EQUITY_SMALL",
+        "Macro Deuda/Bonos": "MACRO_BOND",
+        "Ventas": "SELL",
+        "Caducadas": "STALE"
     }
-    tipos_activos = [tipo_map[x] for x in filtro_tipos]
+    filtro_tipos = st.pills(
+        "Filtrar screener por tipo (clic para activar/desactivar):",
+        options=tipo_opciones,
+        default=["Acciones Operables", "Acciones Informativas"],
+        selection_mode="multi",
+        key="pills_filtro_tipos"
+    )
+    seleccionados = filtro_tipos if filtro_tipos else ["Acciones Operables", "Acciones Informativas"]
+    tipos_activos = [tipo_map[x] for x in seleccionados]
 
     senales_tabla = [
         t for t in all_results
@@ -290,18 +290,34 @@ with tab_screener:
     if not acciones_disponibles:
         st.info("No se encontraron acciones comunes con ticker válido en las páginas analizadas.")
     else:
-        opciones_select = [
-            f"{t['ticker']} | {t['politician']} | Score: {t['score']}/100 | Lag: {t.get('lag_days')}d | {t.get('amount_range')}"
-            for t in acciones_disponibles
-        ]
+        # Eliminar tickers duplicados manteniendo el de mayor puntuacion
+        acciones_unicas = []
+        tickers_vistos = set()
+        for t in acciones_disponibles:
+            tk = t["ticker"]
+            if tk not in tickers_vistos:
+                tickers_vistos.add(tk)
+                acciones_unicas.append(t)
 
-        seleccion_str = st.selectbox(
-            "Seleccione la acción a dimensionar (ordenadas por convicción y score):",
-            opciones_select,
-            index=0
+        ticker_keys = [t["ticker"] for t in acciones_unicas]
+        etiquetas_ticker = {
+            t["ticker"]: f"{t['ticker']} ({t['clasificacion']} {t['score']}p) - {t['politician'][:16]}"
+            for t in acciones_unicas
+        }
+
+        st.markdown("**Seleccione la acción a dimensionar (clic directo en la opción deseada):**")
+        ticker_elegido = st.pills(
+            "Acción a analizar:",
+            options=ticker_keys,
+            default=ticker_keys[0] if ticker_keys else None,
+            format_func=lambda tk: etiquetas_ticker.get(tk, tk),
+            label_visibility="collapsed",
+            key="pills_accion_seleccionada"
         )
-        ticker_elegido = seleccion_str.split("|")[0].strip()
-        senal_elegida = next(t for t in acciones_disponibles if t["ticker"] == ticker_elegido)
+        if not ticker_elegido and ticker_keys:
+            ticker_elegido = ticker_keys[0]
+
+        senal_elegida = next(t for t in acciones_unicas if t["ticker"] == ticker_elegido)
         is_cluster_ticker = ticker_elegido in clusters
 
         if is_cluster_ticker:
