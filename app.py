@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-app.py — Congressional Trade Tracker (Versión Cuantitativa Institucional)
-1. Navegación fluida por tabs con st.session_state (redirección inmediata al hacer clic en cualquier tarjeta).
-2. Cada tarjeta de señal es un botón completo interactivo que abre el desglose en la Calculadora.
-3. Tabla de métricas perfectamente alineada con tooltips explicativos sin descuadres visuales.
-4. Calculadora 100% funcional con claves únicas para evitar errores de Plotly.
-5. Cero emojis. Estilo terminal Bloomberg / FactSet oscuro.
+app.py — Congressional Trade Tracker
+Panel cuantitativo de seguimiento de operaciones de congresistas de EE.UU.
+1. Interfaz limpia tipo screener institucional (sin emojis, sin iconos desalineados).
+2. Selección directa y confiable de cualquier acción para ver su análisis de inmediato.
+3. Tabla de métricas limpia sin columnas de interrogación descuadradas.
+4. Gráfica de velas limpia con niveles técnicos y marca de compra del congresista (sin herramientas de medición innecesarias).
 """
 
 import streamlit as st
@@ -30,13 +30,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inicializar estados de navegación
-if "active_tab" not in st.session_state:
-    st.session_state["active_tab"] = "Todas las Señales"
-if "selected_ticker" not in st.session_state:
-    st.session_state["selected_ticker"] = "EL"
-
-# Estilos CSS profesionales
+# Estilos CSS profesionales terminal oscuro
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
@@ -61,27 +55,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .kpi-val { font-size: 1.35rem; font-weight: 700; color: #f0f6fc; line-height: 1.2; margin-top: 2px; }
 .kpi-sub { font-size: 0.7rem; color: #8b949e; margin-top: 2px; }
 
-/* Estilo para convertir los botones de señal en recuadros completos interactivos */
-div.stButton > button.card-btn {
-    background: #161b22 !important;
-    border: 1px solid #30363d !important;
-    border-left: 4px solid #388bfd !important;
-    border-radius: 6px !important;
-    color: #c9d1d9 !important;
-    text-align: left !important;
-    padding: 12px 16px !important;
-    width: 100% !important;
-    margin-bottom: 6px !important;
-    transition: all 0.15s ease-in-out !important;
-}
-div.stButton > button.card-btn:hover {
-    background: #1c2128 !important;
-    border-color: #58a6ff !important;
-    color: #f0f6fc !important;
-    transform: translateX(2px) !important;
-}
-
-/* Tabla financiera de métricas alineada */
+/* Tabla de métricas de posición sin botones descuadrados */
 .metric-table {
     width: 100%;
     border-collapse: collapse;
@@ -89,7 +63,7 @@ div.stButton > button.card-btn:hover {
     border-radius: 6px;
     border: 1px solid #30363d;
     overflow: hidden;
-    margin-top: 6px;
+    margin-top: 4px;
 }
 .metric-table tr {
     border-bottom: 1px solid #21262d;
@@ -98,43 +72,20 @@ div.stButton > button.card-btn:hover {
     border-bottom: none;
 }
 .metric-table td {
-    padding: 7px 12px;
-    font-size: 0.78rem;
+    padding: 8px 12px;
+    font-size: 0.8rem;
     vertical-align: middle;
 }
 .metric-table td.lbl {
     color: #8b949e;
-    width: 48%;
+    width: 55%;
 }
 .metric-table td.val {
     color: #f0f6fc;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
     text-align: right;
-    width: 44%;
-}
-.metric-table td.help-col {
-    width: 8%;
-    text-align: center;
-}
-.help-icon {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    line-height: 15px;
-    border-radius: 50%;
-    background: #21262d;
-    color: #8b949e;
-    font-size: 10px;
-    font-weight: bold;
-    cursor: help;
-    text-align: center;
-    border: 1px solid #30363d;
-}
-.help-icon:hover {
-    background: #388bfd;
-    color: #ffffff;
-    border-color: #58a6ff;
+    width: 45%;
 }
 
 .stNumberInput input, .stSelectbox select {
@@ -144,24 +95,15 @@ div.stButton > button.card-btn:hover {
     border-radius: 6px !important;
 }
 
-/* Modal popup explicativo cuando se hace click en [?] */
-.dialog-content {
-    background: #161b22;
-    border: 1px solid #30363d;
+.stButton button {
+    background: #238636;
+    color: #ffffff;
+    border: 1px solid rgba(240,246,252,0.1);
     border-radius: 6px;
-    padding: 16px;
-    color: #c9d1d9;
+    font-weight: 600;
+    padding: 8px 16px;
 }
-
-/* Regla interactiva en la gráfica */
-.calc-measure-box {
-    background: #161b22;
-    border: 1px solid #388bfd;
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin-top: 10px;
-}
-
+.stButton button:hover { background: #2ea043; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -190,12 +132,12 @@ def load_and_classify_trades(pages):
 
 
 # Sidebar
-st.sidebar.markdown("### Configuración")
+st.sidebar.markdown("### Configuración del Sistema")
 pages = st.sidebar.slider("Páginas a consultar", min_value=5, max_value=30, value=15, step=1)
 capital = st.sidebar.number_input("Capital de Portafolio ($)", min_value=1000.0, max_value=10000000.0, value=10000.0, step=1000.0)
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### Filtro Global")
+st.sidebar.markdown("### Filtro de Señales")
 min_score = st.sidebar.slider("Score Mínimo", min_value=0, max_value=80, value=20, step=5)
 
 st.sidebar.markdown("---")
@@ -203,16 +145,20 @@ st.sidebar.markdown("### Alpaca Paper Trading")
 alpaca_key = st.sidebar.text_input("API Key", value=Config.ALPACA_API_KEY, type="password")
 alpaca_secret = st.sidebar.text_input("Secret Key", value=Config.ALPACA_SECRET_KEY, type="password")
 
-
 col_btn, _ = st.columns([1, 5])
 with col_btn:
     if st.button("Actualizar Datos", use_container_width=True):
         st.cache_data.clear()
 
-with st.spinner("Consultando registros del Congreso de EE.UU..."):
+with st.spinner("Consultando operaciones del Congreso de EE.UU..."):
     raw_trades, all_results, clusters = load_and_classify_trades(pages)
 
-# Jerarquía estricta de ordenamiento:
+# Jerarquía de ordenamiento institucional:
+# 1. Compras directas operables de acciones (EQUITY_STRONG) por Score y menor Lag
+# 2. Compras directas informativas (EQUITY_SMALL)
+# 3. Macro deuda / bonos (MACRO_BOND)
+# 4. Ventas (SELL)
+# 5. Caducadas (STALE)
 PRIORITY_MAP = {
     "EQUITY_STRONG": 0,
     "EQUITY_SMALL": 1,
@@ -236,14 +182,15 @@ small_trades  = [t for t in all_results if t.get("signal_type") == "EQUITY_SMALL
 macro_trades  = [t for t in all_results if t.get("signal_type") == "MACRO_BOND"]
 sell_trades   = [t for t in all_results if t.get("signal_type") == "SELL"]
 
-# Encabezado
+# Encabezado principal
 st.markdown("""
-<div style="padding: 6px 0 14px 0; border-bottom: 1px solid #21262d; margin-bottom: 14px;">
+<div style="padding: 4px 0 14px 0; border-bottom: 1px solid #21262d; margin-bottom: 14px;">
     <div style="font-size: 1.35rem; font-weight: 700; color: #f0f6fc;">CONGRESSIONAL TRADE TRACKER</div>
-    <div style="font-size: 0.74rem; color: #8b949e;">Sistema cuantitativo institucional de seguimiento y réplica de operaciones políticas</div>
+    <div style="font-size: 0.74rem; color: #8b949e;">Terminal institucional de réplica y análisis cuantitativo de operaciones políticas</div>
 </div>
 """, unsafe_allow_html=True)
 
+# KPIs
 k1, k2, k3, k4, k5 = st.columns(5)
 with k1:
     st.markdown(f"""<div class="kpi"><div class="kpi-lbl">Operaciones Leídas</div><div class="kpi-val">{len(raw_trades)}</div><div class="kpi-sub">Total {pages} páginas</div></div>""", unsafe_allow_html=True)
@@ -258,25 +205,22 @@ with k5:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# NAVEGACIÓN PROGRAMÁTICA CONTROLADA POR SESSION_STATE
-tab_options = ["Todas las Señales", "Análisis Visual", "Calculadora de Posición", "Framework & Reglas"]
-selected_tab = st.radio(
-    "Navegación:",
-    options=tab_options,
-    index=tab_options.index(st.session_state["active_tab"]) if st.session_state["active_tab"] in tab_options else 0,
-    horizontal=True,
-    label_visibility="collapsed"
-)
-st.session_state["active_tab"] = selected_tab
-
-st.markdown("<hr style='border:none; border-top:1px solid #21262d; margin: 4px 0 16px 0;'>", unsafe_allow_html=True)
+# Pestañas limpias
+tab_screener, tab_charts, tab_framework = st.tabs([
+    "Screener y Análisis de Posición",
+    "Distribución y Segmentos",
+    "Framework & Reglas"
+])
 
 # ==============================================================================
-# TAB 1: TODAS LAS SEÑALES (CON CLIC EN EL RECUADRO COMPLETO PARA ABRIR EN CALCULADORA)
+# TAB 1: SCREENER INSTITUCIONAL Y ANÁLISIS DE POSICIÓN (TODO INTEGRADO SIN REDIRECCIONES)
 # ==============================================================================
-if st.session_state["active_tab"] == "Todas las Señales":
-    col_filter, _ = st.columns([3, 1])
-    with col_filter:
+with tab_screener:
+    st.markdown("#### Registro de Operaciones y Selección de Activo")
+
+    # Filtros de tabla
+    c_f1, c_f2 = st.columns([3, 1])
+    with c_f1:
         tipo_opciones = [
             "Acciones Operables (EQUITY_STRONG)",
             "Acciones Informativas (EQUITY_SMALL)",
@@ -285,9 +229,9 @@ if st.session_state["active_tab"] == "Todas las Señales":
             "Caducadas (STALE)"
         ]
         filtro_tipos = st.multiselect(
-            "Filtrar tipos de señal en vista:",
+            "Filtrar tipos de operación:",
             options=tipo_opciones,
-            default=tipo_opciones[:3]
+            default=tipo_opciones[:2] # Por defecto solo acciones
         )
 
     tipo_map = {
@@ -299,146 +243,33 @@ if st.session_state["active_tab"] == "Todas las Señales":
     }
     tipos_activos = [tipo_map[x] for x in filtro_tipos]
 
-    senales_visibles = [
+    senales_tabla = [
         t for t in all_results
         if t.get("signal_type") in tipos_activos and t.get("score", 0) >= min_score
     ]
 
-    c_cards, c_table = st.columns([3, 2])
-    with c_cards:
-        st.markdown(f"**Registros visibles ({len(senales_visibles)})** — *Haz clic en cualquier recuadro para abrir su desglose y calculadora:*")
+    # Tabla screener completa
+    df_rows = []
+    for t in senales_tabla:
+        df_rows.append({
+            "Ticker": t.get("ticker", ""),
+            "Clasificación": t.get("clasificacion", ""),
+            "Score": t.get("score"),
+            "Político": t.get("politician", "")[:18],
+            "Cámara": t.get("chamber", ""),
+            "Lag": f"{t.get('lag_days','?')}d",
+            "Monto": t.get("amount_range", ""),
+            "Empresa": (t.get("issuer_name", "") or t.get("asset_description", ""))[:40],
+            "Tipo": t.get("signal_type", "")
+        })
 
-        for idx, t in enumerate(senales_visibles[:25]):
-            sig = t.get("signal_type", "INVALID")
-            clasif = t.get("clasificacion", "")
-            ticker = t.get("ticker", "N/A")
-            pol = t.get("politician", "Desconocido")
-            score = t.get("score", 0)
-            lag = t.get("lag_days")
-            lag_str = f"{lag}d" if lag is not None else "N/A"
-            amt = t.get("amount_range", "")
-            issuer = (t.get("issuer_name", "") or t.get("asset_description", ""))[:45]
+    st.dataframe(pd.DataFrame(df_rows), use_container_width=True, hide_index=True, height=260)
 
-            # Construir texto del recuadro completo
-            cluster_tag = " [CLUSTER]" if ticker in clusters else ""
-            card_label = f"[{ticker}]  |  {clasif} ({score}/100){cluster_tag}  |  {pol} ({t.get('chamber','')})  |  Lag: {lag_str}  |  {amt}  —  {issuer}"
+    st.markdown("---")
+    st.markdown("#### Análisis y Dimensionamiento de la Acción Seleccionada")
 
-            # Al hacer clic en el recuadro, redirige de inmediato a la Calculadora
-            if st.button(card_label, key=f"btn_card_{idx}_{ticker}", use_container_width=True):
-                if ticker and ticker not in ("--", "N/A", "UNKNOWN") and ticker.isalpha():
-                    st.session_state["selected_ticker"] = ticker
-                    st.session_state["active_tab"] = "Calculadora de Posición"
-                    st.rerun()
-
-    with c_table:
-        st.markdown("**Tabla Resumen**")
-        rows = []
-        for t in senales_visibles:
-            rows.append({
-                "Ticker": t.get("ticker", ""),
-                "Político": t.get("politician", "")[:18],
-                "Score": t.get("score"),
-                "Tipo": t.get("signal_type", ""),
-                "Lag": f"{t.get('lag_days','?')}d",
-                "Monto": t.get("amount_range", "")
-            })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True, height=520)
-
-
-# ==============================================================================
-# TAB 2: ANÁLISIS VISUAL CON INTERACCIÓN LATERAL
-# ==============================================================================
-elif st.session_state["active_tab"] == "Análisis Visual":
-    st.markdown("#### Segmentación Cuantitativa de Señales")
-    rango_score_sel = st.select_slider(
-        "Filtrar señales por segmento de calidad:",
-        options=["Todos (0-100)", "DÉBIL (0-29)", "BAJA (30-44)", "MODERADA (45-59)", "FUERTE (60-100)"],
-        value="Todos (0-100)"
-    )
-
-    if rango_score_sel == "DÉBIL (0-29)":
-        trades_segmento = [t for t in all_results if t.get("score", 0) < 30]
-    elif rango_score_sel == "BAJA (30-44)":
-        trades_segmento = [t for t in all_results if 30 <= t.get("score", 0) < 45]
-    elif rango_score_sel == "MODERADA (45-59)":
-        trades_segmento = [t for t in all_results if 45 <= t.get("score", 0) < 60]
-    elif rango_score_sel == "FUERTE (60-100)":
-        trades_segmento = [t for t in all_results if t.get("score", 0) >= 60]
-    else:
-        trades_segmento = all_results
-
-    col_charts, col_filtered_list = st.columns([3, 2])
-
-    with col_charts:
-        scores = [t.get("score", 0) for t in all_results]
-        bins = list(range(0, 105, 10))
-        counts = [sum(1 for s in scores if bins[i] <= s < bins[i+1]) for i in range(len(bins)-1)]
-        bar_colors = ["#f85149" if b < 30 else ("#d29922" if b < 60 else "#3fb950") for b in bins[:-1]]
-
-        fig_dist = go.Figure(go.Bar(
-            x=[f"{b}-{b+10}" for b in bins[:-1]],
-            y=counts,
-            marker_color=bar_colors,
-            text=counts,
-            textposition="outside"
-        ))
-        fig_dist.update_layout(
-            title="Distribución de Frecuencia por Score",
-            plot_bgcolor="#161b22",
-            paper_bgcolor="#161b22",
-            font_color="#c9d1d9",
-            height=280,
-            margin=dict(t=40, b=30, l=30, r=20),
-            xaxis=dict(gridcolor="#30363d"),
-            yaxis=dict(gridcolor="#30363d")
-        )
-        st.plotly_chart(fig_dist, use_container_width=True, key="fig_dist_chart")
-
-        type_counts = {}
-        for t in all_results:
-            stype = t.get("signal_type", "INVALID")
-            type_counts[stype] = type_counts.get(stype, 0) + 1
-
-        fig_types = go.Figure(go.Pie(
-            labels=list(type_counts.keys()),
-            values=list(type_counts.values()),
-            hole=0.6,
-            marker_colors=["#3fb950", "#58a6ff", "#bc8cff", "#f85149", "#484f58"]
-        ))
-        fig_types.update_layout(
-            title="Composición por Tipo de Operación",
-            plot_bgcolor="#161b22",
-            paper_bgcolor="#161b22",
-            font_color="#c9d1d9",
-            height=240,
-            margin=dict(t=40, b=20, l=20, r=20),
-            legend=dict(bgcolor="#161b22", bordercolor="#30363d")
-        )
-        st.plotly_chart(fig_types, use_container_width=True, key="fig_types_chart")
-
-    with col_filtered_list:
-        st.markdown(f"**Señales en Segmento: `{rango_score_sel}` ({len(trades_segmento)})**")
-        seg_rows = []
-        for ts in trades_segmento:
-            seg_rows.append({
-                "Ticker": ts.get("ticker", ""),
-                "Político": ts.get("politician", "")[:16],
-                "Score": ts.get("score"),
-                "Tipo": ts.get("signal_type", ""),
-                "Lag": f"{ts.get('lag_days', '?')}d",
-                "Monto": ts.get("amount_range", "")
-            })
-        st.dataframe(pd.DataFrame(seg_rows), use_container_width=True, hide_index=True, height=540)
-
-
-# ==============================================================================
-# TAB 3: CALCULADORA DE POSICIÓN (100% OPERATIVA, ROBUSTA Y SIN DESCUADRES)
-# ==============================================================================
-elif st.session_state["active_tab"] == "Calculadora de Posición":
-    st.markdown("#### Calculadora y Desglose Financiero de Posición")
-
-    # FILTRO ESTRICTO: Solo acciones reales (no bonos, no N/A, ticker alfabetico)
-    acciones_para_calculadora = [
+    # Lista exclusiva de acciones operables / informativas con ticker válido
+    acciones_disponibles = [
         t for t in all_results
         if t.get("ticker")
         and t.get("ticker") not in ("--", "N/A", "UNKNOWN")
@@ -447,7 +278,8 @@ elif st.session_state["active_tab"] == "Calculadora de Posición":
         and t.get("signal_type") in ("EQUITY_STRONG", "EQUITY_SMALL")
     ]
 
-    acciones_para_calculadora.sort(
+    # Ordenar estrictamente por calidad de mayor a menor
+    acciones_disponibles.sort(
         key=lambda x: (
             0 if x.get("signal_type") == "EQUITY_STRONG" else 1,
             -x.get("score", 0),
@@ -455,46 +287,36 @@ elif st.session_state["active_tab"] == "Calculadora de Posición":
         )
     )
 
-    if not acciones_para_calculadora:
-        st.info("No se encontraron compras directas de acciones con ticker disponible en las páginas consultadas.")
+    if not acciones_disponibles:
+        st.info("No se encontraron acciones comunes con ticker válido en las páginas analizadas.")
     else:
-        # Lista de tickers disponibles
-        ticker_list = [t["ticker"] for t in acciones_para_calculadora]
-        current_selected = st.session_state.get("selected_ticker", ticker_list[0])
-        if current_selected not in ticker_list:
-            current_selected = ticker_list[0]
-
         opciones_select = [
             f"{t['ticker']} | {t['politician']} | Score: {t['score']}/100 | Lag: {t.get('lag_days')}d | {t.get('amount_range')}"
-            for t in acciones_para_calculadora
+            for t in acciones_disponibles
         ]
-        default_idx = ticker_list.index(current_selected)
 
         seleccion_str = st.selectbox(
-            "Acción en análisis (puedes cambiarla aquí o hacer clic en cualquier tarjeta de la primera pestaña):",
+            "Seleccione la acción a dimensionar (ordenadas por convicción y score):",
             opciones_select,
-            index=default_idx
+            index=0
         )
         ticker_elegido = seleccion_str.split("|")[0].strip()
-        st.session_state["selected_ticker"] = ticker_elegido
-        senal_elegida = next(t for t in acciones_para_calculadora if t["ticker"] == ticker_elegido)
-
+        senal_elegida = next(t for t in acciones_disponibles if t["ticker"] == ticker_elegido)
         is_cluster_ticker = ticker_elegido in clusters
 
         if is_cluster_ticker:
             st.success(f"Cluster Detectado: Múltiples congresistas han comprado {ticker_elegido}: {', '.join(clusters[ticker_elegido])}")
 
-        with st.spinner(f"Obteniendo datos de mercado y calculando niveles para {ticker_elegido}..."):
+        with st.spinner(f"Descargando cotizaciones y calculando parámetros para {ticker_elegido}..."):
             sizer = PositionSizer(portfolio_equity=capital)
             plan = sizer.calcular_posicion(ticker_elegido, senal_elegida["score"], is_cluster=is_cluster_ticker)
 
         if not plan:
-            st.error(f"No fue posible obtener cotización histórica y métricas para {ticker_elegido}.")
+            st.error(f"No fue posible obtener cotización y métricas para {ticker_elegido}.")
         else:
             hist_df = plan.get("hist")
 
-            # Ficha de la Empresa
-            st.markdown("---")
+            # Ficha de la empresa
             f1, f2, f3, f4 = st.columns([3, 1, 1, 1])
             with f1:
                 mc = plan.get("market_cap")
@@ -533,7 +355,7 @@ elif st.session_state["active_tab"] == "Calculadora de Posición":
                         name=ticker_elegido
                     ))
 
-                    # Línea de precio actual
+                    # Precio actual
                     p_act = plan["entry_price"]
                     fig_stock.add_hline(
                         y=p_act, line_color="#58a6ff", line_width=1.5,
@@ -541,14 +363,14 @@ elif st.session_state["active_tab"] == "Calculadora de Posición":
                         annotation_font_color="#58a6ff"
                     )
 
-                    # Línea de Stop Loss
+                    # Stop Loss
                     fig_stock.add_hline(
                         y=plan["stop_loss_price"], line_dash="dash", line_color="#f85149",
                         annotation_text=f"Stop Loss ${plan['stop_loss_price']:,.2f} (-{plan['stop_loss_pct']}%)",
                         annotation_font_color="#f85149"
                     )
 
-                    # Take Profit 1 y 2
+                    # TP1 y TP2
                     fig_stock.add_hline(
                         y=plan["tp1_price"], line_dash="dot", line_color="#3fb950",
                         annotation_text=f"TP1 ${plan['tp1_price']:,.2f} (+15%)",
@@ -560,7 +382,7 @@ elif st.session_state["active_tab"] == "Calculadora de Posición":
                         annotation_font_color="#d29922"
                     )
 
-                    # Ubicar fecha de compra del político
+                    # Marca de compra del congresista
                     trade_date_str = senal_elegida.get("transaction_date", "")
                     try:
                         import dateutil.parser as dparser
@@ -583,77 +405,16 @@ elif st.session_state["active_tab"] == "Calculadora de Posición":
                     except Exception:
                         pass
 
-                    # Habilitar modo de dibujo / medicion en Plotly
                     fig_stock.update_layout(
-                        title=f"{ticker_elegido} - Cotización y Niveles Técnicos (Usa el modo selección para medir)",
+                        title=f"{ticker_elegido} - Cotización y Niveles Técnicos",
                         plot_bgcolor="#161b22", paper_bgcolor="#161b22",
                         font_color="#c9d1d9", height=420,
                         xaxis=dict(gridcolor="#30363d", rangeslider_visible=False),
                         yaxis=dict(gridcolor="#30363d"),
                         margin=dict(t=40, b=20, l=40, r=20),
-                        legend=dict(bgcolor="#161b22", bordercolor="#30363d"),
-                        dragmode="select" # Modo de selección y medición por defecto al arrastrar
+                        legend=dict(bgcolor="#161b22", bordercolor="#30363d")
                     )
-                    
-                    # Capturar evento de selección para calcular el % de cambio exacto
-                    selected_data = st.plotly_chart(
-                        fig_stock, 
-                        use_container_width=True, 
-                        key=f"chart_calc_{ticker_elegido}",
-                        on_select="rerun",
-                        selection_mode=["box", "points"]
-                    )
-                    
-                    # Medidor de porcentaje interactivo
-                    st.markdown("##### Herramienta de Medición (% de Variación)")
-                    col_m1, col_m2 = st.columns(2)
-                    
-                    # Lista de fechas y precios disponibles para referencia rápida o cálculo por selector
-                    fechas_disponibles = [d.strftime("%Y-%m-%d") for d in hist_df.index]
-                    
-                    # Si el usuario seleccionó un área arrastrando el ratón en la gráfica
-                    medicion_calculada = False
-                    if selected_data and "selection" in selected_data and selected_data["selection"].get("box"):
-                        box = selected_data["selection"]["box"][0]
-                        y_vals = box.get("y", [])
-                        if len(y_vals) >= 2:
-                            p_inicio = float(y_vals[0])
-                            p_fin = float(y_vals[1])
-                            var_pct = ((p_fin - p_inicio) / p_inicio) * 100
-                            diff_usd = p_fin - p_inicio
-                            c_res = "#3fb950" if diff_usd >= 0 else "#f85149"
-                            signo = "+" if diff_usd >= 0 else ""
-                            st.markdown(f"""
-<div style="background:#161b22; border:1px solid {c_res}; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
-    <div style="font-size:0.7rem; color:#8b949e; text-transform:uppercase;">Medición de Rango Seleccionado en Gráfica</div>
-    <div style="font-size:1.3rem; font-weight:700; color:{c_res}; font-family:'JetBrains Mono';">{signo}{var_pct:.2f}% ({signo}${diff_usd:.2f})</div>
-    <div style="font-size:0.72rem; color:#c9d1d9;">Punto Inicial: <b>${p_inicio:.2f}</b>  →  Punto Final: <b>${p_fin:.2f}</b></div>
-</div>
-""", unsafe_allow_html=True)
-                            medicion_calculada = True
-                    
-                    # Controles de medición manual con puntos exactos de la acción
-                    with col_m1:
-                        f_inicio_sel = st.selectbox("Fecha o Punto Inicial:", fechas_disponibles, index=max(0, len(fechas_disponibles)-15), key=f"f_ini_{ticker_elegido}")
-                    with col_m2:
-                        f_fin_sel = st.selectbox("Fecha o Punto Final:", fechas_disponibles, index=len(fechas_disponibles)-1, key=f"f_fin_{ticker_elegido}")
-                    
-                    p_start = float(hist_df.loc[hist_df.index.strftime("%Y-%m-%d") == f_inicio_sel, "Close"].iloc[0])
-                    p_end = float(hist_df.loc[hist_df.index.strftime("%Y-%m-%d") == f_fin_sel, "Close"].iloc[0])
-                    
-                    diff_val = p_end - p_start
-                    pct_val = ((p_end - p_start) / p_start) * 100
-                    color_val = "#3fb950" if diff_val >= 0 else "#f85149"
-                    signo_val = "+" if diff_val >= 0 else ""
-                    
-                    if not medicion_calculada:
-                        st.markdown(f"""
-<div style="background:#161b22; border:1px solid #30363d; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
-    <div style="font-size:0.7rem; color:#8b949e; text-transform:uppercase;">Variación Entre Puntos Seleccionados</div>
-    <div style="font-size:1.3rem; font-weight:700; color:{color_val}; font-family:'JetBrains Mono';">{signo_val}{pct_val:.2f}% ({signo_val}${diff_val:.2f})</div>
-    <div style="font-size:0.72rem; color:#c9d1d9;">Inicio ({f_inicio_sel}): <b>${p_start:.2f}</b>  →  Final ({f_fin_sel}): <b>${p_end:.2f}</b></div>
-</div>
-""", unsafe_allow_html=True)
+                    st.plotly_chart(fig_stock, use_container_width=True, key=f"chart_{ticker_elegido}")
 
             with col_plan_pos:
                 r_used = plan["risk_pct_used"]
@@ -674,53 +435,104 @@ elif st.session_state["active_tab"] == "Calculadora de Posición":
 </div>
 """, unsafe_allow_html=True)
 
-                # Tabla de métricas con popovers interactivos al clic y alineación vertical perfecta
+                # Tabla limpia de métricas sin columnas desalineadas
                 metricas_detalle = [
-                    ("Precio de Entrada", f"${plan['entry_price']:,.2f}", "Precio actual estimado al colocar la orden en el mercado."),
-                    ("Stop Loss (ATR)", f"${plan['stop_loss_price']:,.2f} (-{plan['stop_loss_pct']}%)", "Nivel de salida por corte de pérdidas. Calculado a 2.5x o 3.0x ATR para absorber la oscilación normal del activo."),
-                    ("ATR (14 días)", f"${plan['atr']}", "Average True Range. Volatilidad en dólares que experimenta la acción por sesión."),
-                    ("Beta", f"{plan['beta']}", "Sensibilidad frente al S&P 500. Valores mayores a 1.5 activan ajuste de riesgo defensivo."),
-                    ("Acciones a Comprar", f"{plan['shares']} acciones", "Número de títulos calculado a partir de la distancia al Stop Loss."),
-                    ("Capital Comprometido", f"${plan['total_investment']:,.2f} ({plan['portfolio_allocation_pct']}%)", "Monto asignado. No supera el 15% del total de la cartera."),
-                    ("Riesgo en Stop Loss", f"${plan['risk_dollar']:,.2f} ({plan['risk_pct_portfolio']}%)", "Pérdida monetaria en el peor de los casos."),
-                    ("Take Profit 1 (+15%)", f"${plan['tp1_price']:,.2f}", "Primer objetivo. Se liquida el 33% y se sube el Stop a precio de compra (Breakeven)."),
-                    ("Take Profit 2 (+30%)", f"${plan['tp2_price']:,.2f}", "Segundo objetivo. Se liquida otro 33%. El resto corre con Trailing Stop.")
+                    ("Precio de Entrada", f"${plan['entry_price']:,.2f}"),
+                    ("Stop Loss (ATR)", f"${plan['stop_loss_price']:,.2f} (-{plan['stop_loss_pct']}%)"),
+                    ("ATR (14 días)", f"${plan['atr']}"),
+                    ("Beta", f"{plan['beta']}"),
+                    ("Acciones a Comprar", f"{plan['shares']} acciones"),
+                    ("Capital Comprometido", f"${plan['total_investment']:,.2f} ({plan['portfolio_allocation_pct']}%)"),
+                    ("Riesgo en Stop Loss", f"${plan['risk_dollar']:,.2f} ({plan['risk_pct_portfolio']}%)"),
+                    ("Take Profit 1 (+15%)", f"${plan['tp1_price']:,.2f}"),
+                    ("Take Profit 2 (+30%)", f"${plan['tp2_price']:,.2f}")
                 ]
 
-                st.markdown('<div style="background:#161b22; border:1px solid #30363d; border-radius:6px; padding:4px 10px;">', unsafe_allow_html=True)
-                for i_m, (lbl, val, exp) in enumerate(metricas_detalle):
-                    c_l, c_v, c_btn = st.columns([2.6, 2.0, 0.4])
-                    with c_l:
-                        st.markdown(f'<div style="font-size:0.77rem; color:#8b949e; line-height:32px;">{lbl}</div>', unsafe_allow_html=True)
-                    with c_v:
-                        st.markdown(f'<div style="font-size:0.77rem; font-weight:600; color:#f0f6fc; font-family:JetBrains Mono; line-height:32px; text-align:right;">{val}</div>', unsafe_allow_html=True)
-                    with c_btn:
-                        with st.popover("?", use_container_width=True):
-                            st.markdown(f"**{lbl}**")
-                            st.caption(exp)
-                    if i_m < len(metricas_detalle) - 1:
-                        st.markdown('<div style="border-top:1px solid #21262d; margin:0;"></div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                table_rows_html = ""
+                for lbl, val in metricas_detalle:
+                    table_rows_html += f"""
+<tr>
+    <td class="lbl">{lbl}</td>
+    <td class="val">{val}</td>
+</tr>
+"""
+
+                st.markdown(f"""
+<table class="metric-table">
+    {table_rows_html}
+</table>
+""", unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.button("Ejecutar Orden Bracket en Alpaca Paper", key=f"btn_alpaca_exec_{ticker_elegido}", use_container_width=True):
+                if st.button("Ejecutar Orden Bracket en Alpaca Paper", key=f"btn_alpaca_{ticker_elegido}", use_container_width=True):
                     executor = AlpacaExecutor(api_key=alpaca_key, secret_key=alpaca_secret)
                     res = executor.execute_bracket_order(plan)
                     st.success(f"Orden enviada: {res.get('status')} para {ticker_elegido} ({plan['shares']} acciones)")
 
 
 # ==============================================================================
-# TAB 4: FRAMEWORK & REGLAS
+# TAB 2: DISTRIBUCIÓN Y SEGMENTOS
 # ==============================================================================
-elif st.session_state["active_tab"] == "Framework & Reglas":
+with tab_charts:
+    st.markdown("#### Distribución de Scores y Tipos de Activo")
+    c1, c2 = st.columns(2)
+
+    with c1:
+        scores = [t.get("score", 0) for t in all_results]
+        bins = list(range(0, 105, 10))
+        counts = [sum(1 for s in scores if bins[i] <= s < bins[i+1]) for i in range(len(bins)-1)]
+        bar_colors = ["#f85149" if b < 30 else ("#d29922" if b < 60 else "#3fb950") for b in bins[:-1]]
+
+        fig_dist = go.Figure(go.Bar(
+            x=[f"{b}-{b+10}" for b in bins[:-1]],
+            y=counts,
+            marker_color=bar_colors,
+            text=counts,
+            textposition="outside"
+        ))
+        fig_dist.update_layout(
+            title="Distribución de Frecuencia por Score",
+            plot_bgcolor="#161b22", paper_bgcolor="#161b22",
+            font_color="#c9d1d9", height=280,
+            margin=dict(t=40, b=30, l=30, r=20),
+            xaxis=dict(gridcolor="#30363d"), yaxis=dict(gridcolor="#30363d")
+        )
+        st.plotly_chart(fig_dist, use_container_width=True, key="fig_dist")
+
+    with c2:
+        type_counts = {}
+        for t in all_results:
+            stype = t.get("signal_type", "INVALID")
+            type_counts[stype] = type_counts.get(stype, 0) + 1
+
+        fig_types = go.Figure(go.Pie(
+            labels=list(type_counts.keys()),
+            values=list(type_counts.values()),
+            hole=0.6,
+            marker_colors=["#3fb950", "#58a6ff", "#bc8cff", "#f85149", "#484f58"]
+        ))
+        fig_types.update_layout(
+            title="Composición por Tipo de Operación",
+            plot_bgcolor="#161b22", paper_bgcolor="#161b22",
+            font_color="#c9d1d9", height=280,
+            margin=dict(t=40, b=20, l=20, r=20),
+            legend=dict(bgcolor="#161b22", bordercolor="#30363d")
+        )
+        st.plotly_chart(fig_types, use_container_width=True, key="fig_pie")
+
+
+# ==============================================================================
+# TAB 3: FRAMEWORK & REGLAS
+# ==============================================================================
+with tab_framework:
     r1, r2 = st.columns(2)
     with r1:
         st.markdown("""
 ### Jerarquía y Clasificación de Señales
-- **Acciones Operables (`EQUITY_STRONG`):** Compra directa de acción individual, monto superior o igual a $15,000 y lag inferior o igual a 30 días. Son las únicas que pasan a cálculo automático de ejecución.
-- **Acciones Informativas (`EQUITY_SMALL`):** Compras de montos menores a $15,000. Son visibles para contexto, pero no son operables por falta de convicción de capital.
-- **Macro Deuda / Bonos (`MACRO_BOND`):** Operaciones en Notas del Tesoro y fondos de renta fija. No se replican en acciones; sirven como termómetro de liquidez o aversión al riesgo.
-- **Ventas (`SELL`):** Desinversión del político. Alerta de salida si se posee la acción.
+- **Acciones Operables (`EQUITY_STRONG`):** Compra directa de acción individual, monto >= $15,000 y lag <= 30 días. Pasan automáticamente a cálculo de dimensionamiento.
+- **Acciones Informativas (`EQUITY_SMALL`):** Compras de montos menores a $15,000. Visibles para análisis de contexto.
+- **Macro Deuda / Bonos (`MACRO_BOND`):** Operaciones en Notas del Tesoro y fondos de renta fija.
+- **Ventas (`SELL`):** Desinversión del político.
 - **Caducadas (`STALE`):** Reportadas con más de 30 días de retraso.
 
 ### Modelo de Dimensionamiento por Riesgo
@@ -738,7 +550,7 @@ $$\\text{Acciones} = \\frac{\\text{Capital} \\times \\text{Riesgo \\%}}{\\text{P
     with r2:
         st.markdown("""
 ### Los 4 Niveles de Salida (Stop Loss)
-1. **Stop Técnico ATR:** Situado a `2.5x ATR` (o `3.0x ATR` en activos volátiles) por debajo de la entrada para evitar salidas prematuras por volatilidad natural.
+1. **Stop Técnico ATR:** Situado a `2.5x ATR` (o `3.0x ATR` en activos volátiles) por debajo de la entrada para evitar salidas prematuras por ruido de mercado.
 2. **Trailing Stop:** Al alcanzar +15% de beneficio, el Stop Loss se mueve automáticamente a precio de entrada (Breakeven / Riesgo Cero).
 3. **Time Stop:** Posiciones sin avance tras 45 días se cierran para liberar capital.
 4. **Signal Stop:** Venta reportada por el mismo congresista en el ticker obliga a la salida inmediata.
