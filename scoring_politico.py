@@ -102,24 +102,28 @@ RISK_TABLE = {
     # (score_min, score_max): risk_pct
     (75, 100): 2.0,
     (60,  74): 1.5,
-    (45,  59): 1.0,
-    (30,  44): 0.5,
-    (0,   29): 0.25,
+    (0,   59): 1.0,  # Mínimo garantizado del 1.0%
 }
 
 
 def recomendar_risk_pct(score: int, beta: float = 1.0) -> float:
     """
-    Determina el % de riesgo por trade automáticamente.
-    Si beta > 1.5, reduce el riesgo en 0.5pp para compensar la volatilidad extra.
+    Determina el % de riesgo por trade automáticamente:
+    - Base / Mínimo: 1.0%
+    - Score 60 a 74: 1.5%
+    - Score >= 75: 2.0%
+    Si beta > 1.5, reduce 0.5pp pero siempre respetando el piso mínimo de 1.0%.
     """
-    risk = 0.25
-    for (lo, hi), r in RISK_TABLE.items():
-        if lo <= score <= hi:
-            risk = r
-            break
+    if score >= 75:
+        risk = 2.0
+    elif score >= 60:
+        risk = 1.5
+    else:
+        risk = 1.0
+
     if beta > 1.5:
-        risk = max(0.25, risk - 0.5)
+        risk = max(1.0, risk - 0.5)
+
     return round(risk, 2)
 
 

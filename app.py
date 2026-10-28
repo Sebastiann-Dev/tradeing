@@ -566,9 +566,9 @@ with tab_framework:
 Fórmula matemática:
 $$\\text{Acciones} = \\frac{\\text{Capital} \\times \\text{Riesgo \\%}}{\\text{Precio Entrada} - \\text{Stop Loss}}$$
 
-- **Score >= 75:** Riesgo 2.0%
-- **Score 60-74:** Riesgo 1.5%
-- **Score 45-59:** Riesgo 1.0%
+- **Score >= 75 (Top Tier / Alta convicción):** Riesgo 2.0%
+- **Score 60-74 (Fuerte):** Riesgo 1.5%
+- **Score < 60 (Base / Mínimo garantizado):** Riesgo 1.0% (piso mínimo)
 - **Beta > 1.5:** Deducción defensiva de -0.5%
 - **Cluster (2+ políticos en el mismo ticker):** Bonificación de +0.5%
 - **Cap Máximo:** 15% del portafolio total por activo
