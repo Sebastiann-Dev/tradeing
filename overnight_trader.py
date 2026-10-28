@@ -448,6 +448,15 @@ def evaluar_y_entrar(modo_forzado: bool = False):
         order_id   = resultado.get("order_id", "")
     )
 
+    try:
+        from notifier import notify_overnight_entry
+        notify_overnight_entry(
+            OvernightConfig.TICKER, shares, ind["price"],
+            shares * ind["price"], conds_ok, resultado.get("order_id", "")
+        )
+    except Exception as e_notif:
+        log.warning(f"No se pudo enviar notificación de Discord: {e_notif}")
+
     log.info("=" * 65)
     log.info(f"Orden {'enviada a Alpaca' if resultado['status'] == 'SUBMITTED' else 'simulada'}.")
     log.info(f"Manana a las {OvernightConfig.EXIT_HOUR}:{OvernightConfig.EXIT_MINUTE:02d} AM ET "
@@ -495,6 +504,17 @@ def salir_en_apertura():
         condiciones = "SALIDA_AUTOMATICA",
         order_id    = resultado.get("order_id", "")
     )
+
+    try:
+        from notifier import notify_overnight_exit
+        p_pct = pnl_pct if 'pnl_pct' in locals() else 0.0
+        p_dlr = pnl_estimado if pnl_estimado is not None else 0.0
+        notify_overnight_exit(
+            OvernightConfig.TICKER, shares_sold, precio_hoy,
+            p_dlr, p_pct, resultado.get("order_id", "")
+        )
+    except Exception as e_notif:
+        log.warning(f"No se pudo enviar notificación de Discord: {e_notif}")
 
     log.info("=" * 65)
 

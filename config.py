@@ -9,6 +9,9 @@ class Config:
     ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY", "")
     ALPACA_PAPER = os.getenv("ALPACA_PAPER", "True").lower() in ("true", "1")
 
+    # Discord Webhook Config
+    DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+
     # Risk Management Config (Basado en el Framework)
     MAX_RISK_PER_TRADE = float(os.getenv("MAX_RISK_PER_TRADE", 0.01))     # 1%
     HIGH_CONVICTION_RISK = 0.015                                          # 1.5% cuando coinciden comités

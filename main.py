@@ -23,6 +23,7 @@ from scoring_politico import ScoringPolitico
 from position_sizer import PositionSizer
 from alpaca_executor import AlpacaExecutor
 from config import Config
+from notifier import notify_congress_trade
 
 CSV_LOG_FILE = "congreso_trades.csv"
 
@@ -162,6 +163,7 @@ def run_pipeline(max_pages: int = 15, min_score_auto: int = 60):
         # REGLA 3: Ejecución de orden Bracket
         res = executor.execute_bracket_order(plan)
         registrar_auditoria(ticker, pol, score, amt, plan, res)
+        notify_congress_trade(sig, plan, res)
         open_tickers.add(ticker)
         ejecutadas += 1
 
