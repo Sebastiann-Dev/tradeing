@@ -1,16 +1,11 @@
 @echo off
-title Congressional Trade Tracker
 cd /d "C:\Users\u\Desktop\tradeing"
+title Congressional Trade Tracker
 
 echo ============================================================
-echo   Congressional Trade Tracker - Iniciando servidor...
+echo   Congressional Trade Tracker - Abriendo Panel...
 echo ============================================================
 
-REM Arrancar Streamlit en background
-start "" /B ".\venv\Scripts\streamlit.exe" run app.py --server.headless=true --server.port=8501 --server.address=localhost
+powershell -NoProfile -Command "if (-not (Get-NetTCPConnection -LocalPort 8501 -State Listen -ErrorAction SilentlyContinue)) { Start-Process '.\venv\Scripts\streamlit.exe' -ArgumentList 'run app.py --server.headless=true --server.port=8501' -WindowStyle Hidden; Start-Sleep -Seconds 2 }"
 
-REM Esperar 3 segundos a que inicie
-timeout /t 3 /nobreak > NUL
-
-REM Abrir Brave directamente en la URL del panel
-start "" "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" --new-window "http://localhost:8501"
+start "" "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" "http://localhost:8501"
