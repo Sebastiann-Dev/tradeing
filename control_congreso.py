@@ -51,6 +51,7 @@ def main():
         try:
             et = datetime.now(ZoneInfo("America/New_York"))
             print(f"  Hora de Wall Street (ET): {et.strftime('%Y-%m-%d %H:%M:%S')}")
+            print("  Escaneos programados:     10:00 AM, 1:00 PM y 3:30 PM ET (L-V)")
         except Exception:
             pass
 

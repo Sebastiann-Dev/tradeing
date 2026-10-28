@@ -114,7 +114,7 @@ def notify_test_connection():
         {"name": "Estado del Sistema", "value": "En línea y vinculado", "inline": True},
         {"name": "Canal", "value": "Alertas Cuantitativas", "inline": True},
         {"name": "Alpaca Paper Trading", "value": "Conectado ($100k USD)", "inline": True},
-        {"name": "Módulos Activos", "value": "1. Bot Réplica Congreso (10:00 AM ET)\n2. Bot Overnight Drift (3:50 PM / 9:32 AM ET)", "inline": False},
+        {"name": "Módulos Activos", "value": "1. Bot Réplica Congreso (10:00 AM, 1:00 PM, 3:30 PM ET)\n2. Bot Overnight Drift (3:50 PM / 9:32 AM ET)", "inline": False},
     ]
     title = "SISTEMA CUANTITATIVO: Vinculación con Discord Exitosa"
     desc = "El terminal de notificaciones en tiempo real quedó conectado correctamente. Recibirás aquí cada compra, venta y resultado de ejecución."

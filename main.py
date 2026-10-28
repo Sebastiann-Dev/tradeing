@@ -175,13 +175,28 @@ def run_pipeline(max_pages: int = 15, min_score_auto: int = 60):
 def correr_scheduler_congreso():
     """
     Scheduler autónomo para el bot del Congreso.
-    Monitorea el reloj de Nueva York (ET) y corre de Lunes a Viernes a las 10:00 AM ET.
+    Monitorea el reloj de Nueva York (ET) y ejecuta 3 escaneos diarios de Lunes a Viernes:
+      - 10:00 AM ET (Apertura matutina y consolidación de spreads)
+      -  1:00 PM ET (Actualizaciones de mediodía y reportes intermedios)
+      -  3:30 PM ET (Escaneo previo al cierre antes de las 4:00 PM ET)
     """
     ET = ZoneInfo("America/New_York")
-    print("Scheduler del Bot del Congreso iniciado. Monitoreando horario ET...")
-    print("Horario programado: Lunes a Viernes a las 10:00 AM ET (mercado abierto y spreads estables).")
+    print("=" * 75)
+    print("  SCHEDULER DEL BOT DEL CONGRESO INICIADO")
+    print("  Monitoreando horario de Wall Street (ET)...")
+    print("  Ventanas de escaneo programadas (Lunes a Viernes):")
+    print("    1) 10:00 AM ET — Apertura matutina")
+    print("    2)  1:00 PM ET — Actualizaciones de mediodía")
+    print("    3)  3:30 PM ET — Cierre y reportes tardíos")
+    print("=" * 75)
 
-    ejecutado_hoy = False
+    slots = [
+        {"id": "10:00", "hour": 10, "minute": 0, "label": "10:00 AM ET (Apertura matutina)"},
+        {"id": "13:00", "hour": 13, "minute": 0, "label": "1:00 PM ET (Actualizaciones de mediodía)"},
+        {"id": "15:30", "hour": 15, "minute": 30, "label": "3:30 PM ET (Escaneo previo al cierre)"},
+    ]
+
+    slots_ejecutados = set()
     ultimo_dia = None
 
     while True:
@@ -189,29 +204,32 @@ def correr_scheduler_congreso():
         hoy = ahora.date()
 
         if hoy != ultimo_dia:
-            ejecutado_hoy = False
+            slots_ejecutados.clear()
             ultimo_dia = hoy
+            print(f"\n[NUEVO DÍA REGISTRADO] {hoy.strftime('%Y-%m-%d')} — Reiniciando ventanas de escaneo diario.")
 
         dow = hoy.weekday()  # 0=Lunes ... 4=Viernes
 
-        # Disparo: 10:00 AM ET en días hábiles
-        if (not ejecutado_hoy
-                and dow <= 4
-                and ahora.hour == 10
-                and ahora.minute >= 0):
-            print(f"\n[HORARIO ALCANZADO] 10:00 AM ET — Iniciando escaneo del Congreso...")
-            try:
-                run_pipeline(max_pages=15, min_score_auto=60)
-            except Exception as e:
-                print(f"[ERROR] Error inesperado en el escaneo del Congreso: {e}")
-            ejecutado_hoy = True
+        if dow <= 4:
+            for s in slots:
+                s_id = s["id"]
+                if s_id not in slots_ejecutados:
+                    # Tolerancia de 20 minutos para activación tras reinicio o inicio tardío en la franja
+                    if ahora.hour == s["hour"] and s["minute"] <= ahora.minute <= (s["minute"] + 20):
+                        print(f"\n[HORARIO ALCANZADO] {s['label']} — Iniciando escaneo del Congreso...")
+                        slots_ejecutados.add(s_id)
+                        try:
+                            run_pipeline(max_pages=15, min_score_auto=60)
+                        except Exception as e:
+                            print(f"[ERROR] Error inesperado en el escaneo del Congreso: {e}")
+                        break
 
         time.sleep(30)
 
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if "--auto" in args:
+    if any("--auto" in a for a in args):
         correr_scheduler_congreso()
     else:
         # Corrida manual bajo demanda
