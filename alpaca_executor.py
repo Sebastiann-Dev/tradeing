@@ -31,7 +31,9 @@ class AlpacaExecutor:
             print("[INFO] Modo SIMULACIÓN LOCAL activo (configura tus llaves en .env para Alpaca Paper).")
 
     def get_portfolio_equity(self, default_virtual: float = 10000.0) -> float:
-        """Devuelve el equity total de la cuenta o el monto virtual por defecto."""
+        """Devuelve el equity fijado para dimensionamiento (o el de Alpaca si no está configurado)."""
+        if getattr(Config, "PORTFOLIO_EQUITY", 0) > 0:
+            return float(Config.PORTFOLIO_EQUITY)
         if self.client:
             try:
                 account = self.client.get_account()

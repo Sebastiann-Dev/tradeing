@@ -220,13 +220,15 @@ def get_alpaca_client() -> object | None:
 
 
 def get_portfolio_equity(client) -> float:
-    """Obtiene el equity total de la cuenta de Alpaca."""
+    """Obtiene el equity a usar para dimensionamiento."""
+    if getattr(Config, "PORTFOLIO_EQUITY", 0) > 0:
+        return float(Config.PORTFOLIO_EQUITY)
     if not client:
-        return 100_000.0  # Capital virtual de simulacion
+        return 10_000.0
     try:
         return float(client.get_account().equity)
     except Exception:
-        return 100_000.0
+        return 10_000.0
 
 
 # ==============================================================================

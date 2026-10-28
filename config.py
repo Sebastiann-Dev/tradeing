@@ -13,7 +13,8 @@ class Config:
     DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 
     # Risk Management Config (Basado en el Framework)
-    MAX_RISK_PER_TRADE = float(os.getenv("MAX_RISK_PER_TRADE", 0.01))     # 1%
+    PORTFOLIO_EQUITY = float(os.getenv("PORTFOLIO_EQUITY", 10000.0))     # $10,000 USD base
+    MAX_RISK_PER_TRADE = float(os.getenv("MAX_RISK_PER_TRADE", 0.01))     # 1% min base
     HIGH_CONVICTION_RISK = 0.015                                          # 1.5% cuando coinciden comités
     MAX_POSITION_PCT = float(os.getenv("MAX_POSITION_PCT", 0.15))         # 15% Cap
     MAX_SECTOR_PCT = float(os.getenv("MAX_SECTOR_PCT", 0.35))             # 35% Cap
