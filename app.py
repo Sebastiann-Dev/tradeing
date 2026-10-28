@@ -144,6 +144,12 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### Alpaca Paper Trading")
 alpaca_key = st.sidebar.text_input("API Key", value=Config.ALPACA_API_KEY, type="password")
 alpaca_secret = st.sidebar.text_input("Secret Key", value=Config.ALPACA_SECRET_KEY, type="password")
+if alpaca_key and alpaca_secret:
+    st.sidebar.markdown('''
+<div style="background:#161b22; border:1px solid #238636; border-radius:6px; padding:6px 10px; margin-top:8px;">
+    <div style="font-size:0.75rem; color:#3fb950; font-weight:600;">Estado: Conectado (Paper Trading)</div>
+</div>
+''', unsafe_allow_html=True)
 
 col_btn, _ = st.columns([1, 5])
 with col_btn:
@@ -483,7 +489,12 @@ with tab_screener:
                 if st.button("Ejecutar Orden Bracket en Alpaca Paper", key=f"btn_alpaca_{ticker_elegido}", use_container_width=True):
                     executor = AlpacaExecutor(api_key=alpaca_key, secret_key=alpaca_secret)
                     res = executor.execute_bracket_order(plan)
-                    st.success(f"Orden enviada: {res.get('status')} para {ticker_elegido} ({plan['shares']} acciones)")
+                    if res.get("status") == "SUBMITTED":
+                        st.success(f"Orden Bracket enviada a Alpaca Paper (ID: {res.get('order_id')}) para {ticker_elegido} ({plan['shares']} acciones).")
+                    elif res.get("status") == "SIMULATED_SUCCESS":
+                        st.info(f"Simulacion ejecutada: {plan['shares']} acciones de {ticker_elegido}.")
+                    else:
+                        st.error(f"Error al enviar orden a Alpaca: {res.get('error')}")
 
 
 # ==============================================================================
