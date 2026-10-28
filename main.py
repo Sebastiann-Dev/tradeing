@@ -198,7 +198,10 @@ def correr_scheduler_congreso():
                 and ahora.hour == 10
                 and ahora.minute >= 0):
             print(f"\n[HORARIO ALCANZADO] 10:00 AM ET — Iniciando escaneo del Congreso...")
-            run_pipeline(max_pages=15, min_score_auto=60)
+            try:
+                run_pipeline(max_pages=15, min_score_auto=60)
+            except Exception as e:
+                print(f"[ERROR] Error inesperado en el escaneo del Congreso: {e}")
             ejecutado_hoy = True
 
         time.sleep(30)

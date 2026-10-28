@@ -572,7 +572,10 @@ def correr_scheduler():
                 and ahora.hour == OvernightConfig.EXIT_HOUR
                 and ahora.minute >= OvernightConfig.EXIT_MINUTE):
             log.info("Horario de SALIDA alcanzado. Ejecutando liquidacion...")
-            salir_en_apertura()
+            try:
+                salir_en_apertura()
+            except Exception as e:
+                log.error(f"Error inesperado en salida overnight: {e}")
             salida_ejecutada = True
 
         # ENTRADA: 3:50 PM ET (Lunes a Jueves)
@@ -581,7 +584,10 @@ def correr_scheduler():
                 and ahora.hour == OvernightConfig.ENTRY_HOUR
                 and ahora.minute >= OvernightConfig.ENTRY_MINUTE):
             log.info("Horario de ENTRADA alcanzado. Evaluando condiciones...")
-            evaluar_y_entrar(modo_forzado=False)
+            try:
+                evaluar_y_entrar(modo_forzado=False)
+            except Exception as e:
+                log.error(f"Error inesperado en entrada overnight: {e}")
             entrada_ejecutada = True
 
         time.sleep(30)  # Revisar cada 30 segundos
