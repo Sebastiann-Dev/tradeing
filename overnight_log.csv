@@ -1,0 +1,2 @@
+fecha,accion,ticker,shares,precio_ref,inversion,pnl_estimado,status,condiciones_ok,order_id
+2026-10-28,COMPRA_NOCTURNA,SPY,25,771.9,19297.38,,SIMULATED,Dia OK: Miercoles (Lun-Jue) | Tendencia OK: $771.90 > SMA200 $725.22 | VIX OK: 17.2 < 25.0,SIM-ENTRY
