@@ -5,11 +5,18 @@ Ejecuta el flujo completo:
 1. Ingesta de datos (Capitol Trades en tiempo real)
 2. Filtro de Calidad (Lag <= 30d, Monto >= $15k, Compras directas)
 3. Scoring del Político (Comités, Historial, Convicción, Lag)
-4. Dimensionamiento de Posición (Riesgo máx 1%, Stop ATR 2.5x-3.0x, Cap 15%)
+4. Dimensionamiento de Posición (Riesgo mín 1%, Stop ATR 2.5x-3.0x, Cap 15%)
 5. Ejecución (Simulación o Alpaca Paper Trading con órdenes Bracket)
+6. Protección anti-duplicados y registro de auditoría en congreso_trades.csv
 """
 
+import sys
+import os
+import csv
+import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from data_collector import DataCollector
 from filtro_calidad import FiltroCalidad
 from scoring_politico import ScoringPolitico
@@ -17,9 +24,32 @@ from position_sizer import PositionSizer
 from alpaca_executor import AlpacaExecutor
 from config import Config
 
-def run_pipeline(max_pages: int = 15):
+CSV_LOG_FILE = "congreso_trades.csv"
+
+def registrar_auditoria(ticker: str, pol: str, score: int, amt: str, plan: dict, res: dict):
+    """Guarda cada trade ejecutado en un archivo permanente de auditoria."""
+    existe = os.path.isfile(CSV_LOG_FILE)
+    with open(CSV_LOG_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not existe:
+            writer.writerow([
+                "fecha_ejecucion", "ticker", "politico", "score",
+                "monto_declarado", "precio_entrada", "stop_loss",
+                "tp1", "tp2", "shares", "inversion", "riesgo_dollar",
+                "order_id", "status"
+            ])
+        writer.writerow([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            ticker, pol, score, amt,
+            plan["entry_price"], plan["stop_loss_price"],
+            plan["tp1_price"], plan["tp2_price"],
+            plan["shares"], plan["total_investment"], plan["risk_dollar"],
+            res.get("order_id", "SIM-ORDER"), res.get("status", "UNKNOWN")
+        ])
+
+def run_pipeline(max_pages: int = 15, min_score_auto: int = 60):
     print("=" * 75)
-    print("  SISTEMA DE RÉPLICA DE TRADES DEL CONGRESO - PIPELINE COMPLETO")
+    print("  SISTEMA DE RÉPLICA DE TRADES DEL CONGRESO — ESCANEO Y AUTO-EJECUCIÓN")
     print(f"  Fecha de ejecución: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 75)
 
@@ -37,17 +67,20 @@ def run_pipeline(max_pages: int = 15):
     equity = executor.get_portfolio_equity()
     sizer = PositionSizer(portfolio_equity=equity)
 
+    # 3. Protección Anti-Duplicados y Límites
+    open_tickers = executor.get_open_tickers()
     print(f"\n[INFO] Capital del Portafolio: ${equity:,.2f}")
-    print(f"[INFO] Límite de riesgo base por trade: {Config.MAX_RISK_PER_TRADE*100}% (${equity * Config.MAX_RISK_PER_TRADE:,.2f})")
+    print(f"[INFO] Posiciones u órdenes ya abiertas en Alpaca: {list(open_tickers) if open_tickers else 'Ninguna'}")
+    print(f"[INFO] Límite de posiciones simultáneas: {Config.MAX_OPEN_POSITIONS}")
     print(f"[INFO] Evaluando {len(raw_trades)} transacciones del Congreso...\n")
 
     candidatos_validos = []
     descartados_count = 0
 
-    # 3. Filtrado y Scoring
+    # 4. Filtrado y Scoring
     for trade in raw_trades:
-        pasa, motivo, trade_enriquecido = filtro.evaluar_trade(trade)
-        if not pasa:
+        sig_type, motivo, trade_enriquecido = filtro.clasificar(trade)
+        if sig_type != "EQUITY_STRONG":
             descartados_count += 1
             continue
 
@@ -55,18 +88,19 @@ def run_pipeline(max_pages: int = 15):
         trade_enriquecido["score"] = score
         trade_enriquecido["clasificacion"] = clasificacion
         trade_enriquecido["desglose_score"] = desglose
+        trade_enriquecido["signal_type"] = sig_type
 
-        # Filtramos para ejecución señales Moderadas o Fuertes (Score >= 45)
-        if score >= 45:
+        # Filtro estricto para auto-ejecución: solo señales fuertes (Score >= min_score_auto)
+        if score >= min_score_auto:
             candidatos_validos.append(trade_enriquecido)
 
     print(f"[RESUMEN DE FILTRADO]")
-    print(f"  Total analizados:   {len(raw_trades)}")
-    print(f"  Descartados:        {descartados_count} (por lag > 30d, montos bajos o ventas)")
-    print(f"  Señales viables:    {len(candidatos_validos)} con Score >= 45\n")
+    print(f"  Total analizados:     {len(raw_trades)}")
+    print(f"  Descartados:          {descartados_count} (por lag > 30d, montos bajos, bonos o ventas)")
+    print(f"  Señales Fuertes (>= {min_score_auto}p): {len(candidatos_validos)}\n")
 
     if not candidatos_validos:
-        print("[INFO] No hay señales recientes que cumplan los estrictos filtros de calidad hoy.")
+        print(f"[INFO] No hay señales recientes que superen el Score mínimo de {min_score_auto} hoy.")
         return
 
     # Ordenar por Score descendente y menor lag
@@ -84,9 +118,10 @@ def run_pipeline(max_pages: int = 15):
     top_signals = senales_unicas[:5]
 
     print("=" * 75)
-    print("  MEJORES SEÑALES DETECTADAS (TOP CANDIDATOS A EJECUTAR)")
+    print("  MEJORES SEÑALES DETECTADAS (EVALUANDO APERTURA EN ALPACA)")
     print("=" * 75)
 
+    ejecutadas = 0
     for i, sig in enumerate(top_signals, 1):
         ticker = sig["ticker"]
         pol = sig["politician"]
@@ -98,9 +133,19 @@ def run_pipeline(max_pages: int = 15):
 
         print(f"\n[{i}] TICKER: {ticker} | Político: {pol} ({sig.get('chamber', '')})")
         print(f"    Score: {score}/100 [{clasif}] | Lag: {lag} días | Monto: {amt}")
-        print(f"    Desglose: Historial: {desglose.get('historial_politico')}pts, Convicción: {desglose.get('conviccion_monto')}pts, Frescura: {desglose.get('frescura_lag')}pts, Comité: {desglose.get('comite_relevante')}pts")
-        print(f"    Consultando métricas en tiempo real con Yahoo Finance (Precio, ATR, Beta)...")
+        print(f"    Desglose: Historial: {desglose.get('historial_politico')}p, Convicción: {desglose.get('conviccion_monto')}p, Frescura: {desglose.get('frescura_lag')}p, Comité: {desglose.get('comite_relevante')}p")
 
+        # REGLA 1: Anti-duplicados
+        if ticker in open_tickers:
+            print(f"    [SKIP] {ticker} ya está abierto o con orden pendiente en Alpaca. No se duplica.")
+            continue
+
+        # REGLA 2: Límite de posiciones abiertas
+        if len(open_tickers) >= Config.MAX_OPEN_POSITIONS:
+            print(f"    [SKIP] Límite de {Config.MAX_OPEN_POSITIONS} posiciones simultáneas alcanzado en Alpaca.")
+            break
+
+        print(f"    Consultando métricas en tiempo real con Yahoo Finance (Precio, ATR, Beta)...")
         plan = sizer.calcular_posicion(ticker, score)
         if not plan:
             print(f"    [SKIP] No se pudieron obtener cotizaciones para {ticker}.")
@@ -108,18 +153,61 @@ def run_pipeline(max_pages: int = 15):
 
         print(f"    -> Precio Actual:    ${plan['entry_price']}")
         print(f"    -> Volatilidad:      ATR(14)=${plan['atr']} | Beta={plan['beta']}")
-        print(f"    -> Stop Loss ATR:    ${plan['stop_loss_price']} (-{plan['stop_loss_pct']}%) [Protegido contra ruido]")
-        print(f"    -> Acciones sugeridas: {plan['shares']} acciones")
+        print(f"    -> Stop Loss ATR:    ${plan['stop_loss_price']} (-{plan['stop_loss_pct']}%) [Protegido]")
+        print(f"    -> Acciones:         {plan['shares']} acciones")
         print(f"    -> Inversión Total:  ${plan['total_investment']:,.2f} ({plan['portfolio_allocation_pct']}% del capital)")
-        print(f"    -> Riesgo Máximo:    ${plan['risk_dollar']:,.2f} ({plan['risk_pct_portfolio']}% del capital total)")
+        print(f"    -> Riesgo Máximo:    ${plan['risk_dollar']:,.2f} ({plan['risk_pct_portfolio']}% del portafolio)")
         print(f"    -> Take Profit 1:    ${plan['tp1_price']} (+{Config.TP1_PCT*100}%) | TP2: ${plan['tp2_price']} (+{Config.TP2_PCT*100}%)")
 
-        # Ejecución de orden (simulación o Alpaca Paper)
-        executor.execute_bracket_order(plan)
+        # REGLA 3: Ejecución de orden Bracket
+        res = executor.execute_bracket_order(plan)
+        registrar_auditoria(ticker, pol, score, amt, plan, res)
+        open_tickers.add(ticker)
+        ejecutadas += 1
 
     print("\n" + "=" * 75)
-    print("  EJECUCIÓN DEL PIPELINE COMPLETADA EXITOSAMENTE")
+    print(f"  EJECUCIÓN COMPLETADA — {ejecutadas} NUEVAS ÓRDENES ENVIADAS")
     print("=" * 75)
 
+
+def correr_scheduler_congreso():
+    """
+    Scheduler autónomo para el bot del Congreso.
+    Monitorea el reloj de Nueva York (ET) y corre de Lunes a Viernes a las 10:00 AM ET.
+    """
+    ET = ZoneInfo("America/New_York")
+    print("Scheduler del Bot del Congreso iniciado. Monitoreando horario ET...")
+    print("Horario programado: Lunes a Viernes a las 10:00 AM ET (mercado abierto y spreads estables).")
+
+    ejecutado_hoy = False
+    ultimo_dia = None
+
+    while True:
+        ahora = datetime.now(ET)
+        hoy = ahora.date()
+
+        if hoy != ultimo_dia:
+            ejecutado_hoy = False
+            ultimo_dia = hoy
+
+        dow = hoy.weekday()  # 0=Lunes ... 4=Viernes
+
+        # Disparo: 10:00 AM ET en días hábiles
+        if (not ejecutado_hoy
+                and dow <= 4
+                and ahora.hour == 10
+                and ahora.minute >= 0):
+            print(f"\n[HORARIO ALCANZADO] 10:00 AM ET — Iniciando escaneo del Congreso...")
+            run_pipeline(max_pages=15, min_score_auto=60)
+            ejecutado_hoy = True
+
+        time.sleep(30)
+
+
 if __name__ == "__main__":
-    run_pipeline(max_pages=15)
+    args = sys.argv[1:]
+    if "--auto" in args:
+        correr_scheduler_congreso()
+    else:
+        # Corrida manual bajo demanda
+        run_pipeline(max_pages=15, min_score_auto=60)

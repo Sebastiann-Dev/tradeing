@@ -50,6 +50,27 @@ class AlpacaExecutor:
                 print(f"[WARN] Error al consultar posiciones: {e}")
         return 0
 
+    def get_open_tickers(self) -> set:
+        """Devuelve el conjunto de símbolos que ya tienen posición o orden abierta en Alpaca."""
+        open_set = set()
+        if self.client:
+            try:
+                positions = self.client.get_all_positions()
+                for p in positions:
+                    open_set.add(p.symbol)
+            except Exception as e:
+                print(f"[WARN] Error al consultar posiciones abiertas: {e}")
+            try:
+                from alpaca.trading.requests import GetOrdersRequest
+                from alpaca.trading.enums import QueryOrderStatus
+                req = GetOrdersRequest(status=QueryOrderStatus.OPEN)
+                orders = self.client.get_orders(filter=req)
+                for o in orders:
+                    open_set.add(o.symbol)
+            except Exception as e:
+                print(f"[WARN] Error al consultar órdenes abiertas: {e}")
+        return open_set
+
     def execute_bracket_order(self, plan: Dict[str, Any]) -> Dict[str, Any]:
         """
         Ejecuta la compra con Stop Loss y Take Profit integrados (Bracket Order).
