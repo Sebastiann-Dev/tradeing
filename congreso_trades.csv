@@ -1,0 +1,4 @@
+fecha_ejecucion,ticker,politico,score,monto_declarado,precio_entrada,stop_loss,tp1,tp2,shares,inversion,riesgo_dollar,order_id,status
+2026-10-28 14:51:07,EL,Jonathan Jackson,68,50K–100K,109.31,100.29,125.71,142.1,137,14975.47,1235.08,dc183955-6d09-424f-97b5-1bd305c93493,SUBMITTED
+2026-10-28 14:51:08,CACI,Lisa McClain,66,15K–50K,666.26,615.89,766.2,866.14,22,14657.72,1108.21,69343129-02a7-4718-962b-ddbbc44f482d,SUBMITTED
+2026-10-28 14:51:10,GH,Jonathan Jackson,62,15K–50K,182.59,157.44,209.98,237.37,39,7121.01,980.96,98dfebad-bc6c-4239-bb1e-ea780916ba8c,SUBMITTED
