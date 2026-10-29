@@ -568,11 +568,13 @@ def correr_scheduler():
     """
     ET = ZoneInfo("America/New_York")
     log.info("Scheduler Overnight Trader iniciado. Escuchando horarios ET...")
-    log.info(f"  Entrada: {OvernightConfig.ENTRY_HOUR}:{OvernightConfig.ENTRY_MINUTE:02d} PM ET (Lun-Jue)")
-    log.info(f"  Salida:  {OvernightConfig.EXIT_HOUR}:{OvernightConfig.EXIT_MINUTE:02d} AM ET (Lun-Vie)")
+    log.info(f"  Entrada:  {OvernightConfig.ENTRY_HOUR}:{OvernightConfig.ENTRY_MINUTE:02d} PM ET (Lun-Jue)")
+    log.info(f"  Salida:   {OvernightConfig.EXIT_HOUR}:{OvernightConfig.EXIT_MINUTE:02d} AM ET (Lun-Vie)")
+    log.info(f"  Reporte:  4:05 PM ET (Lun-Vie — Toma de Decisiones y Estado Global)")
 
     entrada_ejecutada = False
     salida_ejecutada  = False
+    reporte_ejecutado = False
     ultimo_dia        = None
 
     while True:
@@ -583,6 +585,7 @@ def correr_scheduler():
         if hoy != ultimo_dia:
             entrada_ejecutada = False
             salida_ejecutada  = False
+            reporte_ejecutado = False
             ultimo_dia        = hoy
             log.info(f"Nuevo dia de trading detectado: {hoy}")
 
@@ -611,6 +614,18 @@ def correr_scheduler():
             except Exception as e:
                 log.error(f"Error inesperado en entrada overnight: {e}")
             entrada_ejecutada = True
+
+        # REPORTE DIARIO DE CIERRE: 4:05 PM ET o posterior (Lunes a Viernes)
+        if (not reporte_ejecutado
+                and dow <= 4
+                and (ahora.hour > 16 or (ahora.hour == 16 and ahora.minute >= 5))):
+            log.info("Horario de REPORTE DIARIO alcanzado (post-cierre 4:05 PM ET). Generando y enviando reporte a Discord...")
+            try:
+                from daily_reporter import generar_y_enviar_reporte_diario
+                generar_y_enviar_reporte_diario()
+            except Exception as e:
+                log.error(f"Error al generar reporte diario: {e}")
+            reporte_ejecutado = True
 
         time.sleep(30)  # Revisar cada 30 segundos
 

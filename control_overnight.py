@@ -46,11 +46,12 @@ def main():
         print("  [3] Ejecutar liquidación de salida AHORA (9:32 AM)")
         print("  [4] Iniciar bot en segundo plano (si está detenido)")
         print("  [5] Detener bot en segundo plano")
-        print("  [6] Salir")
+        print("  [6] Generar y enviar Reporte Diario de Decisiones a Discord AHORA")
+        print("  [7] Salir")
         print("-" * 68)
 
         try:
-            choice = input("Seleccione una opción [1-6]: ").strip()
+            choice = input("Seleccione una opción [1-7]: ").strip()
         except (KeyboardInterrupt, EOFError):
             break
 
@@ -91,6 +92,16 @@ def main():
             input("\nPresione Enter para continuar...")
 
         elif choice == "6":
+            print("\nGenerando y despachando Reporte Diario a Discord...\n")
+            try:
+                from daily_reporter import generar_y_enviar_reporte_diario
+                res = generar_y_enviar_reporte_diario()
+                print("\nReporte enviado exitosamente a Discord." if res else "\nError al enviar reporte a Discord.")
+            except Exception as e:
+                print(f"Error al generar reporte: {e}")
+            input("\nPresione Enter para continuar...")
+
+        elif choice == "7":
             break
 
 if __name__ == "__main__":
